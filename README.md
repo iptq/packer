@@ -1,7 +1,9 @@
 Embed
 =====
 
-**NOTE** This project is based on [the original rust-embed](https://github.com/pyros2097/rust-embed). I made enough modifications to it that I decided to just publish it in a separate repositories.
+[![](https://api.travis-ci.org/iptq/embed.svg?branch=master)](https://travis-ci.org/iptq/embed)
+
+**NOTE** This project is based on [the original rust-embed](https://github.com/pyros2097/rust-embed). I made enough modifications to it that I decided to just publish it in a separate repository.
 
 Embed is a library that helps you pack static files into binaries using macro magic. Here's how it's done:
 
