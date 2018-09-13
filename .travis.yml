@@ -1,0 +1,20 @@
+language: rust
+sudo: false
+git:
+  submodules: false
+
+matrix:
+  include:
+    - rust: 1.21.0
+    - rust: stable
+    - os: osx
+      rust: stable
+    - rust: beta
+    - rust: nightly
+
+scripts:
+  - cargo test
+  - cargo test --release
+
+notifications:
+  email: false
