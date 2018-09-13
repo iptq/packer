@@ -37,3 +37,27 @@ fn does_it_work() {
         assert_eq!(hash, format!("{:x}", hasher.result()));
     }
 }
+
+#[test]
+fn does_it_work_with_generics() {
+    #[derive(Embed)]
+    #[folder = "static"]
+    struct Assets<'a, S, T: 'a> where S: Sized {
+        _f: ::std::marker::PhantomData<&'a T>,
+        _g: ::std::marker::PhantomData<S>,
+    }
+
+    let static_files = STATIC_FILES.iter().cloned().collect::<BTreeMap<_, _>>();
+    assert_eq!(
+        Assets::<(), ()>::list().collect::<BTreeSet<_>>(),
+        static_files.keys().cloned().collect::<BTreeSet<_>>()
+    );
+
+    let mut hasher;
+    for (file, hash) in static_files {
+        hasher = Sha256::default();
+        let data = Assets::<(), ()>::get(file).unwrap();
+        hasher.input(data.as_slice());
+        assert_eq!(hash, format!("{:x}", hasher.result()));
+    }
+}

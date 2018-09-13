@@ -11,10 +11,13 @@ use quote::Tokens;
 use std::path::{Path, PathBuf};
 use syn::*;
 
-fn generate_file_list<P>(ident: &syn::Ident, folder_path: P) -> quote::Tokens
+fn generate_file_list<P>(item: &syn::DeriveInput, folder_path: P) -> quote::Tokens
 where
     P: AsRef<Path>,
 {
+    let ident = &item.ident;
+    let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
+
     use walkdir::WalkDir;
     let mut values = Vec::<Tokens>::new();
     for entry in WalkDir::new(&folder_path) {
@@ -25,7 +28,7 @@ where
         }
     }
     quote! {
-        impl #ident {
+        impl #impl_generics #ident #ty_generics #where_clause {
             pub fn list() -> ::std::vec::IntoIter<&'static str> {
                 vec![
                     #(#values)*
@@ -36,13 +39,16 @@ where
 }
 
 #[cfg(debug_assertions)]
-fn generate_assets<P>(ident: &syn::Ident, folder_path: P) -> quote::Tokens
+fn generate_assets<P>(item: &syn::DeriveInput, folder_path: P) -> quote::Tokens
 where
     P: AsRef<Path>,
 {
+    let ident = &item.ident;
+    let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
+
     let folder_path = folder_path.as_ref().to_str().unwrap();
     quote!{
-        impl #ident {
+        impl #impl_generics #ident #ty_generics #where_clause {
             pub fn get(file_path: &str) -> Option<Vec<u8>> {
                 use std::fs::File;
                 use std::io::Read;
@@ -71,10 +77,13 @@ where
 }
 
 #[cfg(not(debug_assertions))]
-fn generate_assets<P>(ident: &syn::Ident, folder_path: P) -> quote::Tokens
+fn generate_assets<P>(item: &syn::DeriveInput, folder_path: P) -> quote::Tokens
 where
     P: AsRef<Path>,
 {
+    let ident = &item.ident;
+    let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
+
     use walkdir::WalkDir;
     let mut values = Vec::<Tokens>::new();
     for entry in WalkDir::new(&folder_path)
@@ -100,7 +109,7 @@ where
         values.push(value);
     }
     quote!{
-        impl #ident {
+        impl #impl_generics #ident #ty_generics #where_clause {
             pub fn get(file_path: &str) -> Option<Vec<u8>> {
                 match file_path {
                     #(#values)*
@@ -112,50 +121,45 @@ where
 }
 
 fn help() {
-    panic!("#[derive(RustEmbed)] should contain one attribute like this #[folder = \"examples/public/\"]");
+    panic!("#[derive(Embed)] should contain one attribute like this #[folder = \"examples/public/\"]");
 }
 
-fn impl_rust_embed(ast: &syn::DeriveInput) -> Tokens {
+fn impl_embed(ast: &syn::DeriveInput) -> Tokens {
     match ast.body {
         Body::Enum(_) => help(),
-        Body::Struct(ref data) => match data {
-            &VariantData::Struct(_) => help(),
-            _ => {}
-        },
+        _ => (),
     };
-    let ident = &ast.ident;
-    if ast.attrs.len() == 0 || ast.attrs.len() > 1 {
-        help();
-    }
+
     let value = &ast.attrs[0].value;
     let literal_value = match value {
         &MetaItem::NameValue(ref attr_name, ref value) => {
             if attr_name == "folder" {
                 value
             } else {
-                panic!("#[derive(RustEmbed)] attribute name must be folder");
+                panic!("#[derive(Embed)] attribute name must be folder");
             }
         }
         _ => {
-            panic!("#[derive(RustEmbed)] attribute name must be folder");
+            panic!("#[derive(Embed)] attribute name must be folder");
         }
     };
     let folder_path = match literal_value {
         &Lit::Str(ref val, _) => PathBuf::from(val),
         _ => {
-            panic!("#[derive(RustEmbed)] attribute value must be a string literal");
+            panic!("#[derive(Embed)] attribute value must be a string literal");
         }
     };
     if !Path::new(&folder_path).exists() {
         panic!(
-            "#[derive(RustEmbed)] folder '{}' does not exist. cwd: '{}'",
+            "#[derive(Embed)] folder '{}' does not exist. cwd: '{}'",
             folder_path.to_str().unwrap(),
             std::env::current_dir().unwrap().to_str().unwrap()
         );
     };
 
-    let generate_file_list_fn = generate_file_list(ident, &folder_path);
-    let generate_assets_fn = generate_assets(ident, &folder_path);
+    let generate_file_list_fn = generate_file_list(ast, &folder_path);
+    let generate_assets_fn = generate_assets(ast, &folder_path);
+
     quote! {
         #generate_file_list_fn
         #generate_assets_fn
@@ -166,6 +170,6 @@ fn impl_rust_embed(ast: &syn::DeriveInput) -> Tokens {
 pub fn derive_input_object(input: TokenStream) -> TokenStream {
     let s = input.to_string();
     let ast = syn::parse_derive_input(&s).unwrap();
-    let gen = impl_rust_embed(&ast);
+    let gen = impl_embed(&ast);
     gen.parse().unwrap()
 }
