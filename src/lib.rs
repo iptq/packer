@@ -11,7 +11,10 @@ use quote::Tokens;
 use std::path::{Path, PathBuf};
 use syn::*;
 
-fn generate_file_list(ident: &syn::Ident, folder_path: impl AsRef<Path>) -> quote::Tokens {
+fn generate_file_list<P>(ident: &syn::Ident, folder_path: P) -> quote::Tokens
+where
+    P: AsRef<Path>,
+{
     use walkdir::WalkDir;
     let mut values = Vec::<Tokens>::new();
     for entry in WalkDir::new(&folder_path) {
@@ -33,7 +36,10 @@ fn generate_file_list(ident: &syn::Ident, folder_path: impl AsRef<Path>) -> quot
 }
 
 #[cfg(debug_assertions)]
-fn generate_assets(ident: &syn::Ident, folder_path: impl AsRef<Path>) -> quote::Tokens {
+fn generate_assets<P>(ident: &syn::Ident, folder_path: P) -> quote::Tokens
+where
+    P: AsRef<Path>,
+{
     let folder_path = folder_path.as_ref().to_str().unwrap();
     quote!{
         impl #ident {
@@ -65,7 +71,10 @@ fn generate_assets(ident: &syn::Ident, folder_path: impl AsRef<Path>) -> quote::
 }
 
 #[cfg(not(debug_assertions))]
-fn generate_assets(ident: &syn::Ident, folder_path: impl AsRef<Path>) -> quote::Tokens {
+fn generate_assets<P>(ident: &syn::Ident, folder_path: P) -> quote::Tokens
+where
+    P: AsRef<Path>,
+{
     use walkdir::WalkDir;
     let mut values = Vec::<Tokens>::new();
     for entry in WalkDir::new(&folder_path)

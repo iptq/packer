@@ -2,6 +2,7 @@ language: rust
 sudo: false
 git:
   submodules: false
+cache: cargo
 
 matrix:
   include:
