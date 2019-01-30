@@ -5,6 +5,8 @@ Packer
 
 **NOTE** This project is based on [the original rust-embed](https://github.com/pyros2097/rust-embed). I made enough modifications to it that I decided to just publish it in a separate repository.
 
+**NOTE** This project requires a Rust 2018 (Rust 1.31+) compiler.
+
 packer is a library that helps you pack static files into binaries using macro magic. Here's how it's done:
 
 ### Step 1: Include

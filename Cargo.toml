@@ -8,6 +8,7 @@ documentation = "https://docs.rs/packer"
 edition = "2018"
 license = "MIT"
 name = "packer"
+readme = "README.md"
 repository = "https://github.com/iptq/packer"
 version = "0.2.0"
 
