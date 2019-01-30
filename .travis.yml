@@ -12,7 +12,7 @@ matrix:
     - rust: beta
     - rust: nightly
 
-scripts:
+script:
   - cargo test
   - cargo test --release
 
