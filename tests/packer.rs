@@ -41,7 +41,10 @@ fn does_it_work() {
 fn does_it_work_with_generics() {
     #[derive(Packer)]
     #[folder = "static"]
-    struct Assets<'a, S, T: 'a> where S: Sized {
+    struct Assets<'a, S, T: 'a>
+    where
+        S: Sized,
+    {
         _f: ::std::marker::PhantomData<&'a T>,
         _g: ::std::marker::PhantomData<S>,
     }

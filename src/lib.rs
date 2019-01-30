@@ -5,9 +5,9 @@ extern crate walkdir;
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use std::path::{Path, PathBuf};
 use quote::quote;
-use syn::{parse_macro_input, Meta,Lit, MetaNameValue,DeriveInput, AttrStyle,Data};
+use std::path::{Path, PathBuf};
+use syn::{parse_macro_input, AttrStyle, Data, DeriveInput, Lit, Meta, MetaNameValue};
 
 fn generate_file_list<P>(item: &syn::DeriveInput, folder_path: P) -> TokenStream2
 where
@@ -45,7 +45,7 @@ where
     let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
 
     let folder_path = folder_path.as_ref().to_str().unwrap();
-    quote!{
+    quote! {
         impl #impl_generics #ident #ty_generics #where_clause {
             pub fn get(file_path: &str) -> Option<Vec<u8>> {
                 use std::fs::File;
@@ -101,12 +101,12 @@ where
         let canonical_path =
             std::fs::canonicalize(entry.path()).expect("Could not get canonical path");
         let canonical_path_str = canonical_path.to_str();
-        let value = quote!{
+        let value = quote! {
           #key => Some(include_bytes!(#canonical_path_str).to_vec()),
         };
         values.push(value);
     }
-    quote!{
+    quote! {
         impl #impl_generics #ident #ty_generics #where_clause {
             pub fn get(file_path: &str) -> Option<Vec<u8>> {
                 match file_path {
@@ -119,7 +119,9 @@ where
 }
 
 fn help() {
-    panic!("#[derive(Embed)] should contain one attribute like this #[folder = \"examples/public/\"]");
+    panic!(
+        "#[derive(Embed)] should contain one attribute like this #[folder = \"examples/public/\"]"
+    );
 }
 
 fn impl_embed(ast: &syn::DeriveInput) -> TokenStream2 {
@@ -152,7 +154,7 @@ fn impl_embed(ast: &syn::DeriveInput) -> TokenStream2 {
     }
 
     let attr = &ast.attrs[0];
-    
+
     match attr.style {
         AttrStyle::Outer => (),
         _ => panic!("Attribute must be an outer attribute."),
@@ -161,7 +163,7 @@ fn impl_embed(ast: &syn::DeriveInput) -> TokenStream2 {
     let meta = attr.parse_meta().expect("Failed to parse meta");
     let (name, value) = match meta {
         Meta::NameValue(MetaNameValue { ident, lit, .. }) => (ident, lit),
-        _ => panic!("u dum but")
+        _ => panic!("u dum but"),
     };
 
     if name != "folder" {
