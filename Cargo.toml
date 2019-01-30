@@ -1,6 +1,7 @@
 [package]
 name = "packer"
 version = "0.1.0"
+license = "MIT"
 repository = "https://github.com/iptq/packer"
 documentation = "https://docs.rs/packer"
 description = "Pack static files into your binary at compile time"
