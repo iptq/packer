@@ -14,7 +14,7 @@ version = "0.2.0"
 
 [dependencies]
 lazy_static = "1.2"
-packer_derive = { path = "packer_derive" }
+packer_derive = { version = "0.2", path = "packer_derive" }
 
 [dev-dependencies]
 sha2 = "0.8"
