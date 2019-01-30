@@ -13,7 +13,7 @@ packer is a library that helps you pack static files into binaries using macro m
 Include the crate in your `Cargo.toml`:
 
 ```toml
-# Use the git URL unless I decide to publish on crates.io
+[dependencies]
 packer = "0.1"
 ```
 
