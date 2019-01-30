@@ -2,6 +2,7 @@ Packer
 ======
 
 [![](https://api.travis-ci.org/iptq/packer.svg?branch=master)](https://travis-ci.org/iptq/packer)
+[![dependency status](https://deps.rs/repo/github/iptq/packer/status.svg)](https://deps.rs/repo/github/iptq/packer)
 
 **NOTE** This project is based on [the original rust-embed](https://github.com/pyros2097/rust-embed). I made enough modifications to it that I decided to just publish it in a separate repository.
 
