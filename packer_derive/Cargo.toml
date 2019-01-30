@@ -1,19 +1,18 @@
-[workspace]
-members = [".", "packer_derive"]
-
 [package]
 authors = ["Michael Zhang <iptq@protonmail.com>", "Nathan Ringo <remexre@protonmail.com>"]
-description = "Pack static files into your binary at compile time"
+description = "Derives for the packer crate"
 documentation = "https://docs.rs/packer"
 edition = "2018"
 license = "MIT"
-name = "packer"
+name = "packer_derive"
 repository = "https://github.com/iptq/packer"
 version = "0.2.0"
 
-[dependencies]
-lazy_static = "1.2"
-packer_derive = { path = "packer_derive" }
+[lib]
+proc-macro = true
 
-[dev-dependencies]
-sha2 = "0.8"
+[dependencies]
+proc-macro2 = "0.4"
+quote = "0.6"
+syn = { version = "0.15", features = ["derive"] }
+walkdir = "2.2"
