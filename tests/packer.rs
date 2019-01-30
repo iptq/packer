@@ -37,7 +37,7 @@ fn does_it_work() {
     }
 
     // test if get_str works
-    assert!(Assets::get_str("LICENSE").unwrap()== include_str!("../static/LICENSE"));
+    assert!(Assets::get_str("LICENSE").unwrap() == include_str!("../static/LICENSE"));
 }
 
 #[test]
@@ -67,5 +67,5 @@ fn does_it_work_with_generics() {
     }
 
     // test if get_str works
-    assert!(Assets::<(), ()>::get_str("LICENSE").unwrap()== include_str!("../static/LICENSE"));
+    assert!(Assets::<(), ()>::get_str("LICENSE").unwrap() == include_str!("../static/LICENSE"));
 }

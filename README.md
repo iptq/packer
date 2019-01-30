@@ -61,6 +61,6 @@ Future Work
 Contact
 -------
 
-Author: Michael Zhang
+Author: Michael Zhang, Nathan Ringo
 
 License: MIT
