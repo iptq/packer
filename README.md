@@ -1,11 +1,11 @@
-Embed
-=====
+Packer
+======
 
-[![](https://api.travis-ci.org/iptq/embed.svg?branch=master)](https://travis-ci.org/iptq/embed)
+[![](https://api.travis-ci.org/iptq/packer.svg?branch=master)](https://travis-ci.org/iptq/packer)
 
 **NOTE** This project is based on [the original rust-embed](https://github.com/pyros2097/rust-embed). I made enough modifications to it that I decided to just publish it in a separate repository.
 
-Embed is a library that helps you pack static files into binaries using macro magic. Here's how it's done:
+packer is a library that helps you pack static files into binaries using macro magic. Here's how it's done:
 
 ### Step 1: Include
 
@@ -13,23 +13,23 @@ Include the crate in your `Cargo.toml`:
 
 ```toml
 # Use the git URL unless I decide to publish on crates.io
-embed = { git = "https://github.com/iptq/embed.git" }
+packer = "0.1"
 ```
 
 and in your `lib.rs` or `main.rs`:
 
 ```rs
 #[macro_use]
-extern crate embed;
+extern crate packer;
 ```
 
 ### Step 2: Derive
 
-Start deriving `Embed` from your structs. You need to provide a `folder` attribute to indicate the folder 
+Start deriving `Packer` from your structs. You need to provide a `folder` attribute to indicate the folder 
 from which it should be pulling. Paths are relative to the crate root.
 
 ```rs
-#[derive(Embed)]
+#[derive(Packer)]
 #[folder = "static"]
 struct Assets;
 ```

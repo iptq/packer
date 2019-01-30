@@ -1,6 +1,5 @@
 #[macro_use]
-extern crate embed;
-extern crate sha2;
+extern crate packer;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -19,7 +18,7 @@ const STATIC_FILES: [(&'static str, &'static str); 2] = [
 
 #[test]
 fn does_it_work() {
-    #[derive(Embed)]
+    #[derive(Packer)]
     #[folder = "static"]
     struct Assets;
 
@@ -40,7 +39,7 @@ fn does_it_work() {
 
 #[test]
 fn does_it_work_with_generics() {
-    #[derive(Embed)]
+    #[derive(Packer)]
     #[folder = "static"]
     struct Assets<'a, S, T: 'a> where S: Sized {
         _f: ::std::marker::PhantomData<&'a T>,

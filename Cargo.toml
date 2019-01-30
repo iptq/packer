@@ -1,17 +1,19 @@
 [package]
-name = "embed"
+name = "packer"
 version = "0.1.0"
-description = "Modified version of rust-embed"
-authors = ["Michael Zhang <failed.down@gmail.com>"]
+description = "Pack static files into your binary at compile time"
+authors = ["Michael Zhang <iptq@protonmail.com>"]
+edition = "2018"
 
 [lib]
 proc-macro = true
 
 [dev-dependencies]
-sha2 = "0.7"
+sha2 = "0.8"
 
 [dependencies]
-syn = "0.11"
-quote = "0.3"
+syn = { version = "0.15", features = ["derive"] }
+quote = "0.6"
+proc-macro2 = "0.4"
 lazy_static = "1.1"
 walkdir = "2.2"

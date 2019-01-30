@@ -1,17 +1,15 @@
 #![recursion_limit = "1024"]
 extern crate proc_macro;
-#[macro_use]
-extern crate quote;
-extern crate syn;
 
 extern crate walkdir;
 
 use proc_macro::TokenStream;
-use quote::Tokens;
+use proc_macro2::TokenStream as TokenStream2;
 use std::path::{Path, PathBuf};
-use syn::*;
+use quote::quote;
+use syn::{parse_macro_input, Meta,Lit, MetaNameValue,DeriveInput, AttrStyle,Data};
 
-fn generate_file_list<P>(item: &syn::DeriveInput, folder_path: P) -> quote::Tokens
+fn generate_file_list<P>(item: &syn::DeriveInput, folder_path: P) -> TokenStream2
 where
     P: AsRef<Path>,
 {
@@ -19,7 +17,7 @@ where
     let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
 
     use walkdir::WalkDir;
-    let mut values = Vec::<Tokens>::new();
+    let mut values = Vec::<TokenStream2>::new();
     for entry in WalkDir::new(&folder_path) {
         let path = entry.unwrap().path().to_path_buf();
         if path.is_file() {
@@ -39,7 +37,7 @@ where
 }
 
 #[cfg(debug_assertions)]
-fn generate_assets<P>(item: &syn::DeriveInput, folder_path: P) -> quote::Tokens
+fn generate_assets<P>(item: &syn::DeriveInput, folder_path: P) -> TokenStream2
 where
     P: AsRef<Path>,
 {
@@ -124,31 +122,57 @@ fn help() {
     panic!("#[derive(Embed)] should contain one attribute like this #[folder = \"examples/public/\"]");
 }
 
-fn impl_embed(ast: &syn::DeriveInput) -> Tokens {
-    match ast.body {
-        Body::Enum(_) => help(),
+fn impl_embed(ast: &syn::DeriveInput) -> TokenStream2 {
+    match ast.data {
+        Data::Enum(_) => help(),
         _ => (),
     };
 
-    let value = &ast.attrs[0].value;
-    let literal_value = match value {
-        &MetaItem::NameValue(ref attr_name, ref value) => {
-            if attr_name == "folder" {
-                value
-            } else {
-                panic!("#[derive(Embed)] attribute name must be folder");
-            }
-        }
-        _ => {
-            panic!("#[derive(Embed)] attribute name must be folder");
-        }
+    // let value = &ast.attrs[0].value;
+    // let literal_value = match value {
+    //     &MetaItem::NameValue(ref attr_name, ref value) => {
+    //         if attr_name == "folder" {
+    //             value
+    //         } else {
+    //             panic!("#[derive(Embed)] attribute name must be folder");
+    //         }
+    //     }
+    //     _ => {
+    //         panic!("#[derive(Embed)] attribute name must be folder");
+    //     }
+    // };
+    // let folder_path = match literal_value {
+    //     &Lit::Str(ref val, _) => PathBuf::from(val),
+    //     _ => {
+    //         panic!("#[derive(Embed)] attribute value must be a string literal");
+    //     }
+    // };
+    if ast.attrs.len() < 1 {
+        panic!("Missing #[folder = \"\"] attribute.");
+    }
+
+    let attr = &ast.attrs[0];
+    
+    match attr.style {
+        AttrStyle::Outer => (),
+        _ => panic!("Attribute must be an outer attribute."),
+    }
+
+    let meta = attr.parse_meta().expect("Failed to parse meta");
+    let (name, value) = match meta {
+        Meta::NameValue(MetaNameValue { ident, lit, .. }) => (ident, lit),
+        _ => panic!("u dum but")
     };
-    let folder_path = match literal_value {
-        &Lit::Str(ref val, _) => PathBuf::from(val),
-        _ => {
-            panic!("#[derive(Embed)] attribute value must be a string literal");
-        }
+
+    if name != "folder" {
+        panic!("Attribute name must be 'folder'")
+    }
+
+    let folder_path = match value {
+        Lit::Str(s) => PathBuf::from(s.value()),
+        _ => panic!("Attribute value must be a string."),
     };
+
     if !Path::new(&folder_path).exists() {
         panic!(
             "#[derive(Embed)] folder '{}' does not exist. cwd: '{}'",
@@ -166,10 +190,9 @@ fn impl_embed(ast: &syn::DeriveInput) -> Tokens {
     }
 }
 
-#[proc_macro_derive(Embed, attributes(folder))]
+#[proc_macro_derive(Packer, attributes(folder))]
 pub fn derive_input_object(input: TokenStream) -> TokenStream {
-    let s = input.to_string();
-    let ast = syn::parse_derive_input(&s).unwrap();
+    let ast = parse_macro_input!(input as DeriveInput);
     let gen = impl_embed(&ast);
-    gen.parse().unwrap()
+    TokenStream::from(gen)
 }
