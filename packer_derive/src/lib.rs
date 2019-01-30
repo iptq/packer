@@ -34,6 +34,10 @@ where
                 const FILES: &[&str] = &[#(#values),*];
                 FILES.into_iter().cloned()
             }
+
+            pub fn get_str(file_path: &str) -> Option<&'static str> {
+                Self::get(file_path).and_then(|s| ::std::str::from_utf8(s).ok())
+            }
         }
     }
 }

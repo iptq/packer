@@ -35,6 +35,9 @@ fn does_it_work() {
         hasher.input(data);
         assert_eq!(hash, format!("{:x}", hasher.result()), "for file {}", file);
     }
+
+    // test if get_str works
+    assert!(Assets::get_str("LICENSE").unwrap()== include_str!("../static/LICENSE"));
 }
 
 #[test]
@@ -62,4 +65,7 @@ fn does_it_work_with_generics() {
         hasher.input(data);
         assert_eq!(hash, format!("{:x}", hasher.result()), "for file {}", file);
     }
+
+    // test if get_str works
+    assert!(Assets::<(), ()>::get_str("LICENSE").unwrap()== include_str!("../static/LICENSE"));
 }
