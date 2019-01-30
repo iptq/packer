@@ -40,13 +40,15 @@ struct Assets;
 You can now access any file using the `get` function:
 
 ```rs
-let data: Option<&'static [u8]> = Assets::get("kermit.jpg");
+/* Option<&'static [u8]> */
+let data = Assets::get("kermit.jpg");
 ```
 
 You may also choose to list all the files that have been stored.
 
 ```rs
-let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();
+/* impl Iterator<Item = &'static str> */
+let files = Assets::list();
 ```
 
 When you build in dev mode, it will fetch off your filesystem as usual, but when you build with `--release`, it will pack the assets into your binary!
