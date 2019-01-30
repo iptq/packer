@@ -32,8 +32,8 @@ fn does_it_work() {
     for (file, hash) in static_files {
         hasher = Sha256::default();
         let data = Assets::get(file).unwrap();
-        hasher.input(data.as_slice());
-        assert_eq!(hash, format!("{:x}", hasher.result()));
+        hasher.input(data);
+        assert_eq!(hash, format!("{:x}", hasher.result()), "for file {}", file);
     }
 }
 
@@ -59,7 +59,7 @@ fn does_it_work_with_generics() {
     for (file, hash) in static_files {
         hasher = Sha256::default();
         let data = Assets::<(), ()>::get(file).unwrap();
-        hasher.input(data.as_slice());
-        assert_eq!(hash, format!("{:x}", hasher.result()));
+        hasher.input(data);
+        assert_eq!(hash, format!("{:x}", hasher.result()), "for file {}", file);
     }
 }
