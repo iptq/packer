@@ -70,13 +70,10 @@ where
 }
 
 #[cfg(not(debug_assertions))]
-fn generate_assets<P>(item: &syn::DeriveInput, folder_path: P) -> TokenStream2
+fn generate_assets<P>(folder_path: P) -> TokenStream2
 where
     P: AsRef<Path>,
 {
-    let ident = &item.ident;
-    let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
-
     let values = WalkDir::new(&folder_path)
         .into_iter()
         .filter_map(|e| e.ok())
