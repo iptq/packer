@@ -55,18 +55,18 @@ pub use lazy_static::*;
 pub use packer_derive::*;
 
 pub trait Packer {
-    // used for iterator, will be changed when impl Trait is stable in trait def
+    // used for iterator, will be changed when impl Trait is stable in trait methods
     #[doc(hidden)]
     type Item: Iterator<Item = &'static str> + Sized;
 
-    /// Lists the 
+    /// Lists the files stored in the `Packer`.
     fn list() -> Self::Item;
 
-    /// Returns the contents of the file named `file_name` as a &'static [u8] if
-    /// it exists, `None` otherwise.
+    /// Returns the contents of the file named `file_name` as a `&'static [u8]` if it exists,
+    /// `None` otherwise.
     fn get(file_name: &str) -> Option<&'static [u8]>;
 
-    /// Returns the contents of the file named `file_name` as a &'static str if
-    /// it exists, `None` otherwise.
+    /// Returns the contents of the file named `file_name` as a `&'static str` if it exists and is
+    /// valid UTF-8, `None` otherwise.
     fn get_str(file_name: &str) -> Option<&'static str>;
 }
