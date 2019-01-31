@@ -15,7 +15,7 @@ Include the crate in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-packer = "0.2"
+packer = "0.3"
 ```
 
 and in your `lib.rs` or `main.rs`:
@@ -40,6 +40,7 @@ struct Assets;
 You can now access any file using the `get` function:
 
 ```rs
+use packer::Packer;
 /* Option<&'static [u8]> */
 let data = Assets::get("kermit.jpg");
 ```
@@ -47,9 +48,12 @@ let data = Assets::get("kermit.jpg");
 You may also choose to list all the files that have been stored.
 
 ```rs
+use packer::Packer;
 /* impl Iterator<Item = &'static str> */
 let files = Assets::list();
 ```
+
+_(See the documentation for the Packer trait for the full listing of methods.)_
 
 When you build in dev mode, it will fetch off your filesystem as usual, but when you build with `--release`, it will pack the assets into your binary!
 

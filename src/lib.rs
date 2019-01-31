@@ -7,7 +7,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! packer = "0.2"
+//! packer = "0.3"
 //! ```
 //!
 //! and in your `lib.rs` or `main.rs`:
@@ -23,7 +23,6 @@
 //! the folder from which it should be pulling. Paths are relative to the crate root.
 //!
 //! ```rs
-//! # use packer::Packer;
 //! #[derive(Packer)]
 //! #[folder = "static"]
 //! struct Assets;
@@ -34,7 +33,7 @@
 //! You can now access any file using the `get` function:
 //!
 //! ```
-//! # use packer::Packer;
+//! use packer::Packer;
 //! # #[derive(packer::Packer)]
 //! # #[folder = "static"]
 //! # struct Assets;
@@ -44,12 +43,14 @@
 //! You may also choose to list all the files that have been stored.
 //!
 //! ```
-//! # use packer::Packer;
+//! use packer::Packer;
 //! # #[derive(packer::Packer)]
 //! # #[folder = "static"]
 //! # struct Assets;
 //! let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();
 //! ```
+//!
+//! _(See the documentation for the Packer trait for the full listing of methods.)_
 //!
 //! When you build in dev mode, it will fetch off your filesystem as usual, but when you build with
 //! `--release`, it will pack the assets into your binary!
