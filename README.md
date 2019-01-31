@@ -23,7 +23,8 @@ packer = "0.3"
 Start deriving `Packer` from your structs. You need to provide a `folder` attribute to indicate the folder from which it should be pulling. Paths are relative to the crate root.
 
 ```rs
-#[derive(packer::Packer)]
+use packer::Packer;
+#[derive(Packer)]
 #[folder = "static"]
 struct Assets;
 ```
@@ -34,16 +35,14 @@ You can now access any file using the `get` function:
 
 ```rs
 use packer::Packer;
-/* Option<&'static [u8]> */
-let data = Assets::get("kermit.jpg");
+let data: Option<&'static [u8]> = Assets::get("kermit.jpg");
 ```
 
 You may also choose to list all the files that have been stored.
 
 ```rs
 use packer::Packer;
-/* impl Iterator<Item = &'static str> */
-let files = Assets::list();
+let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();
 ```
 
 _(See the documentation for the Packer trait for the full listing of methods.)_
