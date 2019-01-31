@@ -10,19 +10,13 @@
 //! packer = "0.3"
 //! ```
 //!
-//! and in your `lib.rs` or `main.rs`:
-//!
-//! ```rs
-//! #[macro_use]
-//! extern crate packer;
-//! ```
-//!
 //! ### Step 2: Derive
 //!
 //! Start deriving `Packer` from your structs. You need to provide a `folder` attribute to indicate
 //! the folder from which it should be pulling. Paths are relative to the crate root.
 //!
-//! ```rs
+//! ```
+//! use packer::Packer;
 //! #[derive(Packer)]
 //! #[folder = "static"]
 //! struct Assets;
@@ -34,7 +28,7 @@
 //!
 //! ```
 //! use packer::Packer;
-//! # #[derive(packer::Packer)]
+//! # #[derive(Packer)]
 //! # #[folder = "static"]
 //! # struct Assets;
 //! let data: Option<&'static [u8]> = Assets::get("kermit.jpg");
@@ -44,7 +38,7 @@
 //!
 //! ```
 //! use packer::Packer;
-//! # #[derive(packer::Packer)]
+//! # #[derive(Packer)]
 //! # #[folder = "static"]
 //! # struct Assets;
 //! let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();

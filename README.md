@@ -18,19 +18,12 @@ Include the crate in your `Cargo.toml`:
 packer = "0.3"
 ```
 
-and in your `lib.rs` or `main.rs`:
-
-```rs
-#[macro_use]
-extern crate packer;
-```
-
 ### Step 2: Derive
 
 Start deriving `Packer` from your structs. You need to provide a `folder` attribute to indicate the folder from which it should be pulling. Paths are relative to the crate root.
 
 ```rs
-#[derive(Packer)]
+#[derive(packer::Packer)]
 #[folder = "static"]
 struct Assets;
 ```
