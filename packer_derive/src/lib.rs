@@ -9,13 +9,10 @@ use std::path::{Path, PathBuf};
 use syn::{parse_macro_input, AttrStyle, Data, DeriveInput, Lit, Meta, MetaNameValue};
 use walkdir::WalkDir;
 
-fn generate_file_list<P>(item: &syn::DeriveInput, folder_path: P) -> TokenStream2
+fn generate_file_list<P>(folder_path: P) -> TokenStream2
 where
     P: AsRef<Path>,
 {
-    let ident = &item.ident;
-    let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
-
     let values = WalkDir::new(&folder_path)
         .into_iter()
         .map(|entry| entry.unwrap().path().to_path_buf())
@@ -29,52 +26,45 @@ where
         });
 
     quote! {
-        impl #impl_generics #ident #ty_generics #where_clause {
-            pub fn list() -> impl std::iter::Iterator<Item = &'static str> {
-                const FILES: &[&str] = &[#(#values),*];
-                FILES.into_iter().cloned()
-            }
+        fn list() -> Self::Item {
+            const FILES: &[&str] = &[#(#values),*];
+            FILES.into_iter().cloned()
+        }
 
-            pub fn get_str(file_path: &str) -> Option<&'static str> {
-                Self::get(file_path).and_then(|s| ::std::str::from_utf8(s).ok())
-            }
+        fn get_str(file_path: &str) -> Option<&'static str> {
+            Self::get(file_path).and_then(|s| ::std::str::from_utf8(s).ok())
         }
     }
 }
 
 #[cfg(debug_assertions)]
-fn generate_assets<P>(item: &syn::DeriveInput, folder_path: P) -> TokenStream2
+fn generate_assets<P>(folder_path: P) -> TokenStream2
 where
     P: AsRef<Path>,
 {
-    let ident = &item.ident;
-    let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
-
     let folder_path = folder_path.as_ref().to_str().unwrap();
     quote! {
-        impl #impl_generics #ident #ty_generics #where_clause {
-            pub fn get(file_path: &str) -> Option<&'static [u8]> {
-                use std::collections::HashSet;
-                use std::fs::read;
-                use std::path::{PathBuf, Path};
-                use std::sync::Mutex;
+        fn get(file_path: &str) -> Option<&'static [u8]> {
+            use std::collections::HashSet;
+            use std::fs::read;
+            use std::path::{PathBuf, Path};
+            use std::sync::Mutex;
 
-                packer::lazy_static! {
-                    static ref CACHE: Mutex<HashSet<&'static [u8]>> = Mutex::new(HashSet::new());
-                }
-
-                let mut path = PathBuf::from(#folder_path);
-                let fpath = PathBuf::from(file_path);
-                path.push(fpath);
-
-                let file = read(path).ok()?;
-
-                let mut cache = CACHE.lock().unwrap();
-                if !cache.contains(&file as &[_]) {
-                    cache.insert(Box::leak(file.clone().into_boxed_slice()));
-                }
-                Some(cache.get(&file as &[_]).unwrap())
+            packer::lazy_static! {
+                static ref CACHE: Mutex<HashSet<&'static [u8]>> = Mutex::new(HashSet::new());
             }
+
+            let mut path = PathBuf::from(#folder_path);
+            let fpath = PathBuf::from(file_path);
+            path.push(fpath);
+
+            let file = read(path).ok()?;
+
+            let mut cache = CACHE.lock().unwrap();
+            if !cache.contains(&file as &[_]) {
+                cache.insert(Box::leak(file.clone().into_boxed_slice()));
+            }
+            Some(cache.get(&file as &[_]).unwrap())
         }
     }
 }
@@ -109,12 +99,10 @@ where
         .collect::<Vec<_>>();
 
     quote! {
-        impl #impl_generics #ident #ty_generics #where_clause {
-            pub fn get(file_path: &str) -> Option<&'static [u8]> {
-                match file_path {
-                    #(#values,)*
-                    _ => None,
-                }
+        fn get(file_path: &str) -> Option<&'static [u8]> {
+            match file_path {
+                #(#values,)*
+                _ => None,
             }
         }
     }
@@ -131,6 +119,9 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
         Data::Enum(_) => help(),
         _ => (),
     };
+
+    let ident = &ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
     if ast.attrs.len() < 1 {
         panic!("Missing #[folder = \"\"] attribute.");
@@ -166,12 +157,16 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
         );
     };
 
-    let generate_file_list_fn = generate_file_list(ast, &folder_path);
-    let generate_assets_fn = generate_assets(ast, &folder_path);
+    let generate_file_list_fn = generate_file_list(&folder_path);
+    let generate_assets_fn = generate_assets(&folder_path);
 
     quote! {
-        #generate_file_list_fn
-        #generate_assets_fn
+        impl #impl_generics ::packer::Packer for #ident #ty_generics #where_clause {
+            type Item = ::std::iter::Cloned<::std::slice::Iter<'static, &'static str>>;
+
+            #generate_file_list_fn
+            #generate_assets_fn
+        }
     }
 }
 

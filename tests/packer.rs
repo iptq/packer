@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate packer;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -18,6 +17,8 @@ const STATIC_FILES: [(&'static str, &'static str); 2] = [
 
 #[test]
 fn does_it_work() {
+    use packer::Packer;
+
     #[derive(Packer)]
     #[folder = "static"]
     struct Assets;
@@ -42,6 +43,8 @@ fn does_it_work() {
 
 #[test]
 fn does_it_work_with_generics() {
+    use packer::Packer;
+    
     #[derive(Packer)]
     #[folder = "static"]
     struct Assets<'a, S, T: 'a>

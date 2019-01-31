@@ -23,6 +23,7 @@
 //! the folder from which it should be pulling. Paths are relative to the crate root.
 //!
 //! ```rs
+//! # use packer::Packer;
 //! #[derive(Packer)]
 //! #[folder = "static"]
 //! struct Assets;
@@ -33,6 +34,7 @@
 //! You can now access any file using the `get` function:
 //!
 //! ```
+//! # use packer::Packer;
 //! # #[derive(packer::Packer)]
 //! # #[folder = "static"]
 //! # struct Assets;
@@ -42,6 +44,7 @@
 //! You may also choose to list all the files that have been stored.
 //!
 //! ```
+//! # use packer::Packer;
 //! # #[derive(packer::Packer)]
 //! # #[folder = "static"]
 //! # struct Assets;
@@ -55,3 +58,20 @@
 pub use lazy_static::*;
 #[doc(hidden)]
 pub use packer_derive::*;
+
+pub trait Packer {
+    // used for iterator, will be changed when impl Trait is stable in trait def
+    #[doc(hidden)]
+    type Item: Iterator<Item = &'static str> + Sized;
+
+    /// Lists the 
+    fn list() -> Self::Item;
+
+    /// Returns the contents of the file named `file_name` as a &'static [u8] if
+    /// it exists, `None` otherwise.
+    fn get(file_name: &str) -> Option<&'static [u8]>;
+
+    /// Returns the contents of the file named `file_name` as a &'static str if
+    /// it exists, `None` otherwise.
+    fn get_str(file_name: &str) -> Option<&'static str>;
+}
