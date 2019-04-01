@@ -2,8 +2,6 @@
 
 extern crate proc_macro;
 
-mod ignore;
-
 use std::env;
 use std::path::PathBuf;
 
@@ -12,8 +10,6 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Lit, Meta, MetaNameValue, NestedMeta};
 use walkdir::WalkDir;
-
-use ignore::IgnoreFilter;
 
 fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
     let values = file_list
@@ -108,7 +104,7 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
 
         if ident == "packer" {
             let mut source_path = None;
-            let mut ignore_filter = IgnoreFilter::default();
+            let mut ignore_patterns = Vec::new();
 
             for meta_item in meta_list {
                 let meta = match meta_item {
@@ -149,7 +145,9 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                                 _ => panic!("Attribute value must be a string."),
                             };
 
-                            ignore_filter.add_pattern(pattern);
+                            let pattern =
+                                glob::Pattern::new(&pattern).expect("Could not compile glob.");
+                            ignore_patterns.push(pattern);
                         }
                     }
                 }
@@ -161,7 +159,17 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
             };
             if source_path.is_file() {
                 // check with the filter anyway
-                if !ignore_filter.should_ignore(&source_path) {
+                let mut allowed = true;
+                #[cfg(feature = "ignore")]
+                {
+                    for pattern in &ignore_patterns {
+                        if pattern.matches_path(&source_path) {
+                            allowed = false;
+                            break;
+                        }
+                    }
+                }
+                if allowed {
                     file_list.push(source_path);
                 }
             } else if source_path.is_dir() {
@@ -182,8 +190,13 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                             panic!("Path doesn't exist: {:?}", &file_path);
                         }
 
-                        if ignore_filter.should_ignore(&file_path) {
-                            return;
+                        #[cfg(feature = "ignore")]
+                        {
+                            for pattern in &ignore_patterns {
+                                if pattern.matches_path(&file_path) {
+                                    return;
+                                }
+                            }
                         }
 
                         file_list.push(file_path.to_path_buf());
