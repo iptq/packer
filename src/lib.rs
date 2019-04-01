@@ -12,13 +12,13 @@
 //!
 //! ### Step 2: Derive
 //!
-//! Start deriving `Packer` from your structs. You need to provide a `folder` attribute to indicate
-//! the folder from which it should be pulling. Paths are relative to the crate root.
+//! Start deriving `Packer` from your structs. You need to provide a `source` attribute to indicate
+//! the directory from which it should be pulling. Paths are relative to the crate root.
 //!
 //! ```
 //! use packer::Packer;
 //! #[derive(Packer)]
-//! #[folder = "static"]
+//! #[source = "static"]
 //! struct Assets;
 //! ```
 //!
@@ -29,7 +29,7 @@
 //! ```
 //! use packer::Packer;
 //! # #[derive(Packer)]
-//! # #[folder = "static"]
+//! # #[source = "static"]
 //! # struct Assets;
 //! let data: Option<&'static [u8]> = Assets::get("kermit.jpg");
 //! ```
@@ -39,7 +39,7 @@
 //! ```
 //! use packer::Packer;
 //! # #[derive(Packer)]
-//! # #[folder = "static"]
+//! # #[source = "static"]
 //! # struct Assets;
 //! let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();
 //! ```

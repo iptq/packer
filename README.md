@@ -7,52 +7,14 @@ Packer
 
 **NOTE** This project requires a Rust 2018 (Rust 1.31+) compiler.
 
-packer is a library that helps you pack static files into binaries using macro magic. Here's how it's done:
+packer is a library that helps you pack static files into binaries using macro magic. When you build in dev mode, it will fetch off your filesystem as usual, but when you build with `--release`, it will pack the assets into your binary!
 
-### Step 1: Include
-
-Include the crate in your `Cargo.toml`:
-
-```toml
-[dependencies]
-packer = "0.3"
-```
-
-### Step 2: Derive
-
-Start deriving `Packer` from your structs. You need to provide a `folder` attribute to indicate the folder from which it should be pulling. Paths are relative to the crate root.
-
-```rs
-use packer::Packer;
-#[derive(Packer)]
-#[folder = "static"]
-struct Assets;
-```
-
-### Step 3: Use it!
-
-You can now access any file using the `get` function:
-
-```rs
-use packer::Packer;
-let data: Option<&'static [u8]> = Assets::get("kermit.jpg");
-```
-
-You may also choose to list all the files that have been stored.
-
-```rs
-use packer::Packer;
-let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();
-```
-
-_(See the documentation for the Packer trait for the full listing of methods.)_
-
-When you build in dev mode, it will fetch off your filesystem as usual, but when you build with `--release`, it will pack the assets into your binary!
+See the docs to see how to use it.
 
 Future Work
 -----------
 
--	Possibly add options for excluding files?
+- Possibly add options for excluding files?
 
 Contact
 -------

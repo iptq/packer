@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 name = "packer_derive"
 repository = "https://github.com/iptq/packer"
-version = "0.3.0"
+version = "0.4.0"
 
 [lib]
 proc-macro = true
