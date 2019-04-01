@@ -6,11 +6,11 @@ use sha2::{Digest, Sha256};
 
 const STATIC_FILES: [(&'static str, &'static str); 2] = [
     (
-        "kermit.jpg",
+        "static/first/kermit.jpg",
         "9a2c63b0f308c3c98021e810b8852c3f6ebe3983b7d17571cb1ebb848ceb0529",
     ),
     (
-        "LICENSE",
+        "static/second/LICENSE",
         "11abea45320df7723b156cbd4994d61da79f5e67e2eebba63c370f84196d621e",
     ),
 ];
@@ -20,7 +20,8 @@ fn does_it_work() {
     use packer::Packer;
 
     #[derive(Packer)]
-    #[folder = "static"]
+    #[source = "static/first"]
+    #[source = "static/second"]
     struct Assets;
 
     let static_files = STATIC_FILES.iter().cloned().collect::<BTreeMap<_, _>>();
@@ -38,15 +39,19 @@ fn does_it_work() {
     }
 
     // test if get_str works
-    assert!(Assets::get_str("LICENSE").unwrap() == include_str!("../static/LICENSE"));
+    assert!(
+        Assets::get_str("static/second/LICENSE").unwrap()
+            == include_str!("../static/second/LICENSE")
+    );
 }
 
 #[test]
 fn does_it_work_with_generics() {
     use packer::Packer;
-    
+
     #[derive(Packer)]
-    #[folder = "static"]
+    #[source = "static/first"]
+    #[source = "static/second"]
     struct Assets<'a, S, T: 'a>
     where
         S: Sized,
@@ -70,5 +75,8 @@ fn does_it_work_with_generics() {
     }
 
     // test if get_str works
-    assert!(Assets::<(), ()>::get_str("LICENSE").unwrap() == include_str!("../static/LICENSE"));
+    assert!(
+        Assets::<(), ()>::get_str("static/second/LICENSE").unwrap()
+            == include_str!("../static/second/LICENSE")
+    );
 }
