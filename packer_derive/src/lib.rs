@@ -2,14 +2,18 @@
 
 extern crate proc_macro;
 
+mod ignore;
+
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{parse_macro_input, AttrStyle, Data, DeriveInput, Lit, Meta, MetaNameValue};
+use syn::{parse_macro_input, Data, DeriveInput, Lit, Meta, MetaNameValue, NestedMeta};
 use walkdir::WalkDir;
+
+use ignore::IgnoreFilter;
 
 fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
     let values = file_list
@@ -29,7 +33,7 @@ fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
 }
 
 #[cfg(debug_assertions)]
-fn generate_assets(file_list: &Vec<PathBuf>) -> TokenStream2 {
+fn generate_assets(_file_list: &Vec<PathBuf>) -> TokenStream2 {
     quote! {
         fn get(file_path: &str) -> Option<&'static [u8]> {
             use std::collections::HashSet;
@@ -94,42 +98,97 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     // look for #[folder = ""] attributes
     for attr in &ast.attrs {
         let meta = attr.parse_meta().expect("Failed to parse meta.");
-        let (name, value) = match meta {
-            Meta::NameValue(MetaNameValue { ident, lit, .. }) => (ident, lit),
+        let (ident, meta_list) = match meta {
+            Meta::List(list) => (list.ident, list.nested),
+            Meta::NameValue(_) => {
+                panic!("The API has changed. Please see the docs for the updated syntax.")
+            }
             _ => panic!("rtfm"),
         };
 
-        if name == "source" {
-            let path = match value {
-                Lit::Str(s) => PathBuf::from(s.value()),
-                _ => panic!("Attribute value must be a string."),
-            };
+        if ident == "packer" {
+            let mut source_path = None;
+            let mut ignore_filter = IgnoreFilter::default();
 
-            if !Path::new(&path).exists() {
-                panic!(
-                    "Directory '{}' does not exist. cwd: '{}'",
-                    path.to_str().unwrap(),
-                    std::env::current_dir().unwrap().to_str().unwrap()
-                );
-            };
+            for meta_item in meta_list {
+                let meta = match meta_item {
+                    NestedMeta::Meta(meta) => meta,
+                    _ => panic!("rtfm"),
+                };
 
-            WalkDir::new(&path).into_iter().for_each(|dir_entry| {
-                let dir_entry = dir_entry.unwrap_or_else(|err| {
-                    panic!("WalkDir error: {}", err);
-                });
-                let file_path = dir_entry.path();
+                let (name, value) = match meta {
+                    Meta::NameValue(MetaNameValue { ident, lit, .. }) => (ident, lit),
+                    _ => panic!("rtfm"),
+                };
 
-                if !file_path.is_file() {
-                    // ignore directories
-                    return;
+                if name == "source" {
+                    let path = match value {
+                        Lit::Str(s) => PathBuf::from(s.value()),
+                        _ => panic!("Attribute value must be a string."),
+                    };
+
+                    if let Some(_) = source_path {
+                        panic!("Cannot put two sources in the same attribute. Please create a new attribute.");
+                    }
+
+                    if !path.exists() {
+                        panic!(
+                            "Directory '{}' does not exist. cwd: '{}'",
+                            path.to_str().unwrap(),
+                            env::current_dir().unwrap().to_str().unwrap()
+                        );
+                    };
+
+                    source_path = Some(path);
+                } else {
+                    #[cfg(feature = "ignore")]
+                    {
+                        if name == "ignore" {
+                            let pattern = match value {
+                                Lit::Str(s) => s.value(),
+                                _ => panic!("Attribute value must be a string."),
+                            };
+
+                            ignore_filter.add_pattern(pattern);
+                        }
+                    }
                 }
+            }
 
-                if !file_path.exists() {
-                    panic!("Path doesn't exist: {:?}", &file_path);
+            let source_path = match source_path {
+                Some(path) => path,
+                None => panic!("No source path provided."),
+            };
+            if source_path.is_file() {
+                // check with the filter anyway
+                if !ignore_filter.should_ignore(&source_path) {
+                    file_list.push(source_path);
                 }
+            } else if source_path.is_dir() {
+                WalkDir::new(&source_path)
+                    .into_iter()
+                    .for_each(|dir_entry| {
+                        let dir_entry = dir_entry.unwrap_or_else(|err| {
+                            panic!("WalkDir error: {}", err);
+                        });
+                        let file_path = dir_entry.path();
 
-                file_list.push(file_path.to_path_buf());
-            })
+                        if !file_path.is_file() {
+                            // ignore directories
+                            return;
+                        }
+
+                        if !file_path.exists() {
+                            panic!("Path doesn't exist: {:?}", &file_path);
+                        }
+
+                        if ignore_filter.should_ignore(&file_path) {
+                            return;
+                        }
+
+                        file_list.push(file_path.to_path_buf());
+                    });
+            }
         }
     }
 
@@ -146,7 +205,7 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     }
 }
 
-#[proc_macro_derive(Packer, attributes(source))]
+#[proc_macro_derive(Packer, attributes(packer))]
 pub fn derive_input_object(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let gen = impl_packer(&ast);

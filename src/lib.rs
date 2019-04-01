@@ -18,7 +18,7 @@
 //! ```
 //! use packer::Packer;
 //! #[derive(Packer)]
-//! #[source = "static"]
+//! #[packer(source = "static")]
 //! struct Assets;
 //! ```
 //!
@@ -29,7 +29,7 @@
 //! ```
 //! use packer::Packer;
 //! # #[derive(Packer)]
-//! # #[source = "static"]
+//! # #[packer(source = "static")]
 //! # struct Assets;
 //! let data: Option<&'static [u8]> = Assets::get("kermit.jpg");
 //! ```
@@ -39,15 +39,34 @@
 //! ```
 //! use packer::Packer;
 //! # #[derive(Packer)]
-//! # #[source = "static"]
+//! # #[packer(source = "static")]
 //! # struct Assets;
 //! let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();
+//! // Result (with no guarantee of order):
+//! // files = ["static/first/kermit.jpg", "static/second/ignored.x", "static/second/LICENSE"]
 //! ```
 //!
 //! _(See the documentation for the Packer trait for the full listing of methods.)_
 //!
 //! When you build in dev mode, it will fetch off your filesystem as usual, but when you build with
 //! `--release`, it will pack the assets into your binary!
+//!
+//! # Ignoring Paths
+//!
+//! You can choose to ignore certain paths using the `ignore` option:
+//!
+//! ```
+//! # use std::collections::BTreeSet;
+//! # use packer::Packer;
+//! #[derive(Packer)]
+//! #[packer(source = "static/second", ignore = "*.x")]
+//! struct Assets;
+//!
+//! // using BTreeSet since there's no guarantee of order
+//! assert_eq!(Assets::list().into_iter().collect::<BTreeSet<_>>(),
+//!            vec!["static/second/LICENSE"].into_iter().collect::<BTreeSet<_>>());
+//! ```
+//!
 
 #[doc(hidden)]
 pub use lazy_static::*;

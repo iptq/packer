@@ -20,8 +20,8 @@ fn does_it_work() {
     use packer::Packer;
 
     #[derive(Packer)]
-    #[source = "static/first"]
-    #[source = "static/second"]
+    #[packer(source = "static/first")]
+    #[packer(source = "static/second", ignore = "**/*.x")]
     struct Assets;
 
     let static_files = STATIC_FILES.iter().cloned().collect::<BTreeMap<_, _>>();
@@ -50,8 +50,8 @@ fn does_it_work_with_generics() {
     use packer::Packer;
 
     #[derive(Packer)]
-    #[source = "static/first"]
-    #[source = "static/second"]
+    #[packer(source = "static/first")]
+    #[packer(source = "static/second", ignore = "**/*.x")]
     struct Assets<'a, S, T: 'a>
     where
         S: Sized,
