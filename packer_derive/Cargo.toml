@@ -13,6 +13,7 @@ proc-macro = true
 
 [features]
 default = ["ignore"]
+always_pack = []
 ignore = ["glob"]
 
 [dependencies]

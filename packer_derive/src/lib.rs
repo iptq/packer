@@ -28,7 +28,7 @@ fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
     }
 }
 
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, not(feature = "always_pack")))]
 fn generate_assets(_file_list: &Vec<PathBuf>) -> TokenStream2 {
     quote! {
         fn get(file_path: &str) -> Option<&'static [u8]> {
@@ -53,7 +53,7 @@ fn generate_assets(_file_list: &Vec<PathBuf>) -> TokenStream2 {
     }
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(any(not(debug_assertions), feature = "always_pack"))]
 fn generate_assets(file_list: &Vec<PathBuf>) -> TokenStream2 {
     let values = file_list
         .iter()
