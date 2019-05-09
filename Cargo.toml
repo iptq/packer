@@ -15,6 +15,7 @@ version = "0.4.1"
 
 [features]
 default = ["ignore"]
+always_pack = ["packer_derive/always_pack"]
 ignore = ["packer_derive/ignore"]
 
 [dependencies]
