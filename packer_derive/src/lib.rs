@@ -2,23 +2,24 @@
 
 extern crate proc_macro;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Lit, Meta, MetaNameValue, NestedMeta};
+use syn::{parse_macro_input, Data, DeriveInput, Lit, LitBool, Meta, MetaNameValue, NestedMeta};
 use walkdir::WalkDir;
 
-fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
-    let values = file_list
+fn generate_file_list(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
+    let files = file_list
         .iter()
-        .map(|path| path.to_str().unwrap().to_string());
+        .map(|(key, _)| key);
 
     quote! {
         fn list() -> Self::Item {
-            const FILES: &[&str] = &[#(#values),*];
+            const FILES: &[&str] = &[#(#files),*];
             FILES.into_iter().cloned()
         }
 
@@ -29,7 +30,7 @@ fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
 }
 
 #[cfg(all(debug_assertions, not(feature = "always_pack")))]
-fn generate_assets(_file_list: &Vec<PathBuf>) -> TokenStream2 {
+fn generate_assets(_file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
     quote! {
         fn get(file_path: &str) -> Option<&'static [u8]> {
             use std::collections::HashSet;
@@ -54,7 +55,7 @@ fn generate_assets(_file_list: &Vec<PathBuf>) -> TokenStream2 {
 }
 
 #[cfg(any(not(debug_assertions), feature = "always_pack"))]
-fn generate_assets(file_list: &Vec<PathBuf>) -> TokenStream2 {
+fn generate_assets(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
     let values = file_list
         .iter()
         .map(|path| {
@@ -89,7 +90,7 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     let ident = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-    let mut file_list = Vec::new();
+    let mut file_list = BTreeMap::new();
 
     // look for #[folder = ""] attributes
     for attr in &ast.attrs {
@@ -140,6 +141,10 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                         source_path = Some(path);
                     }
                     "prefixed" => {
+                        match value {
+                            Lit::Bool(LitBool { value, .. }) => prefixed = value,
+                            _ => panic!("The `prefixed` parameter must be a bool"),
+                        };
                     }
                     #[cfg(feature = "ignore")]
                     "ignore" => {
@@ -175,7 +180,8 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                     }
                 }
                 if allowed {
-                    file_list.push(source_path);
+                    // makes no difference if it's prefixed or not for single files
+                    file_list.insert(source_path.to_str().unwrap().to_string(), source_path);
                 }
             } else if source_path.is_dir() {
                 WalkDir::new(&source_path)
@@ -204,7 +210,15 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                             }
                         }
 
-                        file_list.push(file_path.to_path_buf());
+                        let file_name = if !prefixed {
+                            file_path.strip_prefix(&source_path).unwrap()
+                        } else {
+                            file_path
+                        };
+                        file_list.insert(
+                            file_name.to_str().unwrap().to_string(),
+                            file_path.to_path_buf(),
+                        );
                     });
             }
         }
