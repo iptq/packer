@@ -82,8 +82,8 @@ fn generate_assets(file_list: &Vec<PathBuf>) -> TokenStream2 {
 
 fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     match ast.data {
-        Data::Enum(_) => panic!("#[derive(Packer)] must be used on structs."),
-        _ => (),
+        Data::Struct(_) => (),
+        _ => panic!("#[derive(Packer)] must be used on structs."),
     };
 
     let ident = &ast.ident;
@@ -104,6 +104,7 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
 
         if ident == "packer" {
             let mut source_path = None;
+            let mut prefixed = true;
             let mut ignore_patterns = Vec::new();
 
             for meta_item in meta_list {
@@ -117,38 +118,42 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                     _ => panic!("rtfm"),
                 };
 
-                if name == "source" {
-                    let path = match value {
-                        Lit::Str(s) => PathBuf::from(s.value()),
-                        _ => panic!("Attribute value must be a string."),
-                    };
+                match name.to_string().as_str() {
+                    "source" => {
+                        let path = match value {
+                            Lit::Str(s) => PathBuf::from(s.value()),
+                            _ => panic!("Attribute value must be a string."),
+                        };
 
-                    if let Some(_) = source_path {
-                        panic!("Cannot put two sources in the same attribute. Please create a new attribute.");
-                    }
-
-                    if !path.exists() {
-                        panic!(
-                            "Directory '{}' does not exist. cwd: '{}'",
-                            path.to_str().unwrap(),
-                            env::current_dir().unwrap().to_str().unwrap()
-                        );
-                    };
-
-                    source_path = Some(path);
-                } else {
-                    #[cfg(feature = "ignore")]
-                    {
-                        if name == "ignore" {
-                            let pattern = match value {
-                                Lit::Str(s) => s.value(),
-                                _ => panic!("Attribute value must be a string."),
-                            };
-
-                            let pattern =
-                                glob::Pattern::new(&pattern).expect("Could not compile glob.");
-                            ignore_patterns.push(pattern);
+                        if let Some(_) = source_path {
+                            panic!("Cannot put two sources in the same attribute. Please create a new attribute.");
                         }
+
+                        if !path.exists() {
+                            panic!(
+                                "Directory '{}' does not exist. cwd: '{}'",
+                                path.to_str().unwrap(),
+                                env::current_dir().unwrap().to_str().unwrap()
+                            );
+                        };
+
+                        source_path = Some(path);
+                    }
+                    "prefixed" => {
+                    }
+                    #[cfg(feature = "ignore")]
+                    "ignore" => {
+                        let pattern = match value {
+                            Lit::Str(s) => s.value(),
+                            _ => panic!("Attribute value must be a string."),
+                        };
+
+                        let pattern =
+                            glob::Pattern::new(&pattern).expect("Could not compile glob.");
+                        ignore_patterns.push(pattern);
+                    }
+                    unsupported => {
+                        panic!("unsupported parameter '{}'", unsupported);
                     }
                 }
             }
