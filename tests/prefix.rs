@@ -36,9 +36,3 @@ fn unprefixed() {
             .collect::<BTreeSet<_>>()
     );
 }
-
-#[test]
-#[should_panic]
-fn prefix_collision() {
-    // TODO
-}

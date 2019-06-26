@@ -215,8 +215,12 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                         } else {
                             file_path
                         };
+                        let key = file_name.to_str().unwrap().to_string();
+                        if file_list.contains_key(&key) {
+                            panic!("collision for name '{}'", key);
+                        }
                         file_list.insert(
-                            file_name.to_str().unwrap().to_string(),
+                            key,
                             file_path.to_path_buf(),
                         );
                     });
