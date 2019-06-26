@@ -58,12 +58,8 @@ fn generate_assets(_file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
 fn generate_assets(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
     let values = file_list
         .iter()
-        .map(|path| {
+        .map(|(key, path)| {
             // let base = folder_path.as_ref();
-            let key = String::from(
-                path.to_str()
-                    .expect("Path does not have a string representation"),
-            );
             let canonical_path =
                 std::fs::canonicalize(&path).expect("Could not get canonical path");
             let canonical_path_str = canonical_path.to_str();
