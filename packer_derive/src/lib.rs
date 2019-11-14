@@ -2,23 +2,24 @@
 
 extern crate proc_macro;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Lit, Meta, MetaNameValue, NestedMeta};
+use syn::{parse_macro_input, Data, DeriveInput, Lit, LitBool, Meta, MetaNameValue, NestedMeta};
 use walkdir::WalkDir;
 
-fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
-    let values = file_list
+fn generate_file_list(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
+    let files = file_list
         .iter()
-        .map(|path| path.to_str().unwrap().to_string());
+        .map(|(key, _)| key);
 
     quote! {
         fn list() -> Self::Item {
-            const FILES: &[&str] = &[#(#values),*];
+            const FILES: &[&str] = &[#(#files),*];
             FILES.into_iter().cloned()
         }
 
@@ -29,7 +30,7 @@ fn generate_file_list(file_list: &Vec<PathBuf>) -> TokenStream2 {
 }
 
 #[cfg(all(debug_assertions, not(feature = "always_pack")))]
-fn generate_assets(_file_list: &Vec<PathBuf>) -> TokenStream2 {
+fn generate_assets(_file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
     quote! {
         fn get(file_path: &str) -> Option<&'static [u8]> {
             use std::collections::HashSet;
@@ -54,15 +55,11 @@ fn generate_assets(_file_list: &Vec<PathBuf>) -> TokenStream2 {
 }
 
 #[cfg(any(not(debug_assertions), feature = "always_pack"))]
-fn generate_assets(file_list: &Vec<PathBuf>) -> TokenStream2 {
+fn generate_assets(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
     let values = file_list
         .iter()
-        .map(|path| {
+        .map(|(key, path)| {
             // let base = folder_path.as_ref();
-            let key = String::from(
-                path.to_str()
-                    .expect("Path does not have a string representation"),
-            );
             let canonical_path =
                 std::fs::canonicalize(&path).expect("Could not get canonical path");
             let canonical_path_str = canonical_path.to_str();
@@ -82,14 +79,14 @@ fn generate_assets(file_list: &Vec<PathBuf>) -> TokenStream2 {
 
 fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     match ast.data {
-        Data::Enum(_) => panic!("#[derive(Packer)] must be used on structs."),
-        _ => (),
+        Data::Struct(_) => (),
+        _ => panic!("#[derive(Packer)] must be used on structs."),
     };
 
     let ident = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-    let mut file_list = Vec::new();
+    let mut file_list = BTreeMap::new();
 
     // look for #[folder = ""] attributes
     for attr in &ast.attrs {
@@ -104,6 +101,7 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
 
         if ident == "packer" {
             let mut source_path = None;
+            let mut prefixed = true;
             let mut ignore_patterns = Vec::new();
 
             for meta_item in meta_list {
@@ -117,38 +115,46 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                     _ => panic!("rtfm"),
                 };
 
-                if name == "source" {
-                    let path = match value {
-                        Lit::Str(s) => PathBuf::from(s.value()),
-                        _ => panic!("Attribute value must be a string."),
-                    };
+                match name.to_string().as_str() {
+                    "source" => {
+                        let path = match value {
+                            Lit::Str(s) => PathBuf::from(s.value()),
+                            _ => panic!("Attribute value must be a string."),
+                        };
 
-                    if let Some(_) = source_path {
-                        panic!("Cannot put two sources in the same attribute. Please create a new attribute.");
-                    }
-
-                    if !path.exists() {
-                        panic!(
-                            "Directory '{}' does not exist. cwd: '{}'",
-                            path.to_str().unwrap(),
-                            env::current_dir().unwrap().to_str().unwrap()
-                        );
-                    };
-
-                    source_path = Some(path);
-                } else {
-                    #[cfg(feature = "ignore")]
-                    {
-                        if name == "ignore" {
-                            let pattern = match value {
-                                Lit::Str(s) => s.value(),
-                                _ => panic!("Attribute value must be a string."),
-                            };
-
-                            let pattern =
-                                glob::Pattern::new(&pattern).expect("Could not compile glob.");
-                            ignore_patterns.push(pattern);
+                        if let Some(_) = source_path {
+                            panic!("Cannot put two sources in the same attribute. Please create a new attribute.");
                         }
+
+                        if !path.exists() {
+                            panic!(
+                                "Directory '{}' does not exist. cwd: '{}'",
+                                path.to_str().unwrap(),
+                                env::current_dir().unwrap().to_str().unwrap()
+                            );
+                        };
+
+                        source_path = Some(path);
+                    }
+                    "prefixed" => {
+                        match value {
+                            Lit::Bool(LitBool { value, .. }) => prefixed = value,
+                            _ => panic!("The `prefixed` parameter must be a bool"),
+                        };
+                    }
+                    #[cfg(feature = "ignore")]
+                    "ignore" => {
+                        let pattern = match value {
+                            Lit::Str(s) => s.value(),
+                            _ => panic!("Attribute value must be a string."),
+                        };
+
+                        let pattern =
+                            glob::Pattern::new(&pattern).expect("Could not compile glob.");
+                        ignore_patterns.push(pattern);
+                    }
+                    unsupported => {
+                        panic!("unsupported parameter '{}'", unsupported);
                     }
                 }
             }
@@ -170,7 +176,8 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                     }
                 }
                 if allowed {
-                    file_list.push(source_path);
+                    // makes no difference if it's prefixed or not for single files
+                    file_list.insert(source_path.to_str().unwrap().to_string(), source_path);
                 }
             } else if source_path.is_dir() {
                 WalkDir::new(&source_path)
@@ -199,7 +206,19 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                             }
                         }
 
-                        file_list.push(file_path.to_path_buf());
+                        let file_name = if !prefixed {
+                            file_path.strip_prefix(&source_path).unwrap()
+                        } else {
+                            file_path
+                        };
+                        let key = file_name.to_str().unwrap().to_string();
+                        if file_list.contains_key(&key) {
+                            panic!("collision for name '{}'", key);
+                        }
+                        file_list.insert(
+                            key,
+                            file_path.to_path_buf(),
+                        );
                     });
             }
         }

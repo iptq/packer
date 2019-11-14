@@ -18,7 +18,7 @@
 //! ```
 //! use packer::Packer;
 //! #[derive(Packer)]
-//! #[packer(source = "static")]
+//! #[packer(source = "tests/basic")]
 //! struct Assets;
 //! ```
 //!
@@ -29,7 +29,7 @@
 //! ```
 //! use packer::Packer;
 //! # #[derive(Packer)]
-//! # #[packer(source = "static")]
+//! # #[packer(source = "tests/basic")]
 //! # struct Assets;
 //! let data: Option<&'static [u8]> = Assets::get("kermit.jpg");
 //! ```
@@ -39,11 +39,11 @@
 //! ```
 //! use packer::Packer;
 //! # #[derive(Packer)]
-//! # #[packer(source = "static")]
+//! # #[packer(source = "tests/basic")]
 //! # struct Assets;
 //! let files /*: impl Iterator<Item = &'static str>*/ = Assets::list();
 //! // Result (with no guarantee of order):
-//! // files = ["static/first/kermit.jpg", "static/second/ignored.x", "static/second/LICENSE"]
+//! // files = ["tests/basic/first/kermit.jpg", "tests/basic/second/ignored.x", "tests/basic/second/LICENSE"]
 //! ```
 //!
 //! _(See the documentation for the Packer trait for the full listing of methods.)_
@@ -59,12 +59,12 @@
 //! # use std::collections::BTreeSet;
 //! # use packer::Packer;
 //! #[derive(Packer)]
-//! #[packer(source = "static/second", ignore = "*.x")]
+//! #[packer(source = "tests/basic/second", ignore = "*.x")]
 //! struct Assets;
 //!
 //! // using BTreeSet since there's no guarantee of order
 //! assert_eq!(Assets::list().into_iter().collect::<BTreeSet<_>>(),
-//!            vec!["static/second/LICENSE"].into_iter().collect::<BTreeSet<_>>());
+//!            vec!["tests/basic/second/LICENSE"].into_iter().collect::<BTreeSet<_>>());
 //! ```
 //!
 
