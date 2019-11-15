@@ -36,7 +36,7 @@ fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> 
                 let path = path.to_str();
                 quote! { Some(PathBuf::from(#path)) }
             } else {
-                quote!{ None }
+                quote! { None }
             };
             quote! { (PathBuf::from(#key), #prefix) }
         })
@@ -85,7 +85,7 @@ fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> 
 fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> TokenStream2 {
     let values = file_list
         .iter()
-        .map(|(key, path)| {
+        .map(|(key, (path, _))| {
             // let base = folder_path.as_ref();
             let canonical_path =
                 std::fs::canonicalize(&path).expect("Could not get canonical path");
@@ -118,15 +118,15 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     // look for #[folder = ""] attributes
     for attr in &ast.attrs {
         let meta = attr.parse_meta().expect("Failed to parse meta.");
-        let (ident, meta_list) = match meta {
-            Meta::List(list) => (list.ident, list.nested),
+        let (path, meta_list) = match meta {
+            Meta::List(list) => (list.path, list.nested),
             Meta::NameValue(_) => {
                 panic!("The API has changed. Please see the docs for the updated syntax.")
             }
             _ => panic!("rtfm"),
         };
 
-        if ident == "packer" {
+        if path.is_ident("packer") {
             let mut source_path = None;
             let mut prefixed = true;
             let mut ignore_patterns = Vec::new();
@@ -137,52 +137,46 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                     _ => panic!("rtfm"),
                 };
 
-                let (name, value) = match meta {
-                    Meta::NameValue(MetaNameValue { ident, lit, .. }) => (ident, lit),
+                let (path, value) = match meta {
+                    Meta::NameValue(MetaNameValue { path, lit, .. }) => (path, lit),
                     _ => panic!("rtfm"),
                 };
 
-                match name.to_string().as_str() {
-                    "source" => {
-                        let path = match value {
-                            Lit::Str(s) => PathBuf::from(s.value()),
-                            _ => panic!("Attribute value must be a string."),
-                        };
+                if path.is_ident("source") {
+                    let path = match value {
+                        Lit::Str(s) => PathBuf::from(s.value()),
+                        _ => panic!("Attribute value must be a string."),
+                    };
 
-                        if let Some(_) = source_path {
-                            panic!("Cannot put two sources in the same attribute. Please create a new attribute.");
-                        }
-
-                        if !path.exists() {
-                            panic!(
-                                "Directory '{}' does not exist. cwd: '{}'",
-                                path.to_str().unwrap(),
-                                env::current_dir().unwrap().to_str().unwrap()
-                            );
-                        };
-
-                        source_path = Some(path);
+                    if let Some(_) = source_path {
+                        panic!("Cannot put two sources in the same attribute. Please create a new attribute.");
                     }
-                    "prefixed" => {
-                        match value {
-                            Lit::Bool(LitBool { value, .. }) => prefixed = value,
-                            _ => panic!("The `prefixed` parameter must be a bool"),
-                        };
-                    }
+
+                    if !path.exists() {
+                        panic!(
+                            "Directory '{}' does not exist. cwd: '{}'",
+                            path.to_str().unwrap(),
+                            env::current_dir().unwrap().to_str().unwrap()
+                        );
+                    };
+
+                    source_path = Some(path);
+                } else if path.is_ident("prefixed") {
+                    match value {
+                        Lit::Bool(LitBool { value, .. }) => prefixed = value,
+                        _ => panic!("The `prefixed` parameter must be a bool"),
+                    };
+                } else if path.is_ident("ignore") {
                     #[cfg(feature = "ignore")]
-                    "ignore" => {
-                        let pattern = match value {
-                            Lit::Str(s) => s.value(),
-                            _ => panic!("Attribute value must be a string."),
-                        };
+                    let pattern = match value {
+                        Lit::Str(s) => s.value(),
+                        _ => panic!("Attribute value must be a string."),
+                    };
 
-                        let pattern =
-                            glob::Pattern::new(&pattern).expect("Could not compile glob.");
-                        ignore_patterns.push(pattern);
-                    }
-                    unsupported => {
-                        panic!("unsupported parameter '{}'", unsupported);
-                    }
+                    let pattern = glob::Pattern::new(&pattern).expect("Could not compile glob.");
+                    ignore_patterns.push(pattern);
+                } else {
+                    panic!("unsupported parameter '{:?}'", path);
                 }
             }
 

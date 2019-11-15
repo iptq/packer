@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 name = "packer_derive"
 repository = "https://github.com/iptq/packer"
-version = "0.5.0"
+version = "0.5.1"
 
 [lib]
 proc-macro = true
@@ -17,8 +17,8 @@ always_pack = []
 ignore = ["glob"]
 
 [dependencies]
-proc-macro2 = "0.4"
-quote = "0.6"
-syn = { version = "0.15", features = ["derive"] }
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0", features = ["extra-traits"] }
 walkdir = "2.2"
 glob = { version = "0.3", optional = true }
