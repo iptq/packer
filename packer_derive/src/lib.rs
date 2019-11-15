@@ -12,10 +12,8 @@ use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Lit, LitBool, Meta, MetaNameValue, NestedMeta};
 use walkdir::WalkDir;
 
-fn generate_file_list(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
-    let files = file_list
-        .iter()
-        .map(|(key, _)| key);
+fn generate_file_list(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> TokenStream2 {
+    let files = file_list.iter().map(|(key, _)| key);
 
     quote! {
         fn list() -> Self::Item {
@@ -30,20 +28,49 @@ fn generate_file_list(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
 }
 
 #[cfg(all(debug_assertions, not(feature = "always_pack")))]
-fn generate_assets(_file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
+fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> TokenStream2 {
+    let values = file_list
+        .iter()
+        .map(|(key, (path, prefix))| {
+            let prefix = if let Some(path) = prefix {
+                let path = path.to_str();
+                quote! { Some(PathBuf::from(#path)) }
+            } else {
+                quote!{ None }
+            };
+            quote! { (PathBuf::from(#key), #prefix) }
+        })
+        .collect::<Vec<_>>();
+
     quote! {
         fn get(file_path: &str) -> Option<&'static [u8]> {
-            use std::collections::HashSet;
+            use std::collections::{HashSet, HashMap};
             use std::fs::read;
             use std::path::{PathBuf, Path};
             use std::sync::Mutex;
 
             packer::lazy_static! {
+                static ref FILE_LIST: Mutex<HashMap<PathBuf, Option<PathBuf>>> = Mutex::new(vec![
+                    #(#values,)*
+                    ].into_iter().collect());
                 static ref CACHE: Mutex<HashSet<&'static [u8]>> = Mutex::new(HashSet::new());
             }
 
             let path = PathBuf::from(file_path);
-            let file = read(path).ok()?;
+            let path = {
+                let file_list = FILE_LIST.lock().unwrap();
+                println!("FILE LIST: {:?}, path: {:?}", file_list, path);
+                if let Some(prefix) = file_list.get(&path) {
+                    if let Some(prefix) = prefix {
+                        prefix.join(path).to_path_buf()
+                    } else {
+                        path
+                    }
+                } else {
+                    return None;
+                }
+            };
+            let file = read(&path).ok()?;
 
             let mut cache = CACHE.lock().unwrap();
             if !cache.contains(&file as &[_]) {
@@ -55,7 +82,7 @@ fn generate_assets(_file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
 }
 
 #[cfg(any(not(debug_assertions), feature = "always_pack"))]
-fn generate_assets(file_list: &BTreeMap<String, PathBuf>) -> TokenStream2 {
+fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> TokenStream2 {
     let values = file_list
         .iter()
         .map(|(key, path)| {
@@ -177,7 +204,10 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                 }
                 if allowed {
                     // makes no difference if it's prefixed or not for single files
-                    file_list.insert(source_path.to_str().unwrap().to_string(), source_path);
+                    file_list.insert(
+                        source_path.to_str().unwrap().to_string(),
+                        (source_path, None),
+                    );
                 }
             } else if source_path.is_dir() {
                 WalkDir::new(&source_path)
@@ -217,7 +247,14 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                         }
                         file_list.insert(
                             key,
-                            file_path.to_path_buf(),
+                            (
+                                file_path.to_path_buf(),
+                                if prefixed {
+                                    None
+                                } else {
+                                    Some(source_path.clone())
+                                },
+                            ),
                         );
                     });
             }

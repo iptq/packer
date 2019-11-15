@@ -29,6 +29,7 @@ fn does_it_work() {
         Assets::list().collect::<BTreeSet<_>>(),
         static_files.keys().cloned().collect::<BTreeSet<_>>()
     );
+    eprintln!("list: {:?}", Assets::list());
 
     let mut hasher;
     for (file, hash) in static_files {
@@ -65,6 +66,7 @@ fn does_it_work_with_generics() {
         Assets::<(), ()>::list().collect::<BTreeSet<_>>(),
         static_files.keys().cloned().collect::<BTreeSet<_>>()
     );
+    eprintln!("list: {:?}", Assets::<(), ()>::list());
 
     let mut hasher;
     for (file, hash) in static_files {
