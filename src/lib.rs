@@ -7,7 +7,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! packer = "0.4"
+//! packer = "0.5"
 //! ```
 //!
 //! ### Step 2: Derive
