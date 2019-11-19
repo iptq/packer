@@ -67,6 +67,21 @@
 //!            vec!["tests/basic/second/LICENSE"].into_iter().collect::<BTreeSet<_>>());
 //! ```
 //!
+//! # Stripping the Prefix
+//!
+//! By default, the path will keep the prefix. For example, if your file is located at `static/index.html`
+//! relative to your project root, then the path that's in the packed version will also be `static/index.html`.
+//! If you would like it to instead be just `index.html`, configure the `prefixed` option as follows:
+//!
+//! ```
+//! # use std::collections::BTreeSet;
+//! # use packer::Packer;
+//! #[derive(Packer)]
+//! #[packer(source = "tests/basic", prefixed = false)]
+//! struct Assets;
+//! ```
+//!
+//! By default, this option is set to true.
 
 #[doc(hidden)]
 pub use lazy_static::*;
