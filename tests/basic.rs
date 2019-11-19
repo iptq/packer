@@ -82,3 +82,15 @@ fn does_it_work_with_generics() {
             == include_str!("../tests/basic/second/LICENSE")
     );
 }
+
+#[test]
+fn single_file() {
+    use packer::Packer;
+
+    #[derive(Packer)]
+    #[packer(source = "tests/basic/second/LICENSE")]
+    struct Assets;
+
+    assert!(
+        Assets::get("tests/basic/second/LICENSE") == Some(include_bytes!("basic/second/LICENSE")));
+}
