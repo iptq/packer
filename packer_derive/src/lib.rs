@@ -120,10 +120,7 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
         let meta = attr.parse_meta().expect("Failed to parse meta.");
         let (path, meta_list) = match meta {
             Meta::List(list) => (list.path, list.nested),
-            Meta::NameValue(_) => {
-                panic!("The API has changed. Please see the docs for the updated syntax.")
-            }
-            _ => panic!("rtfm"),
+            _ => continue,
         };
 
         if path.is_ident("packer") {
@@ -134,12 +131,12 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
             for meta_item in meta_list {
                 let meta = match meta_item {
                     NestedMeta::Meta(meta) => meta,
-                    _ => panic!("rtfm"),
+                    _ => continue,
                 };
 
                 let (path, value) = match meta {
                     Meta::NameValue(MetaNameValue { path, lit, .. }) => (path, lit),
-                    _ => panic!("rtfm"),
+                    _ => continue,
                 };
 
                 if path.is_ident("source") {
