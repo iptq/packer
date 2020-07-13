@@ -21,7 +21,7 @@ ignore = ["packer_derive/ignore"]
 [dependencies]
 lazy_static = "1.4.0"
 packer_derive = { version = "0.5.4", path = "packer_derive" }
-phf = { version = "0.8.0", features = ["macros"]}
+phf = { version = "0.8.0", features = ["macros"] }
 
 [dev-dependencies]
-sha2 = "0.8.0"
+sha2 = "0.9.1"
