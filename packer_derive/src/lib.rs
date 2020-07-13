@@ -26,8 +26,9 @@ fn generate_file_list(
             FILES.into_iter().cloned()
         }
 
-        fn get_str(file_path: &str) -> Option<&'static str> {
-            Self::get(file_path).and_then(|s| ::std::str::from_utf8(s).ok())
+        fn get_str(file_path: impl AsRef<str>) -> Option<&'static str> {
+            Self::get(file_path.as_ref())
+                .and_then(|s| ::std::str::from_utf8(s).ok())
         }
     }
 }
@@ -51,7 +52,7 @@ fn generate_assets(
         .collect::<Vec<_>>();
 
     quote! {
-        fn get(file_path: &str) -> Option<&'static [u8]> {
+        fn get(file_path: impl AsRef<str>) -> Option<&'static [u8]> {
             use std::collections::{HashSet, HashMap};
             use std::fs::read;
             use std::path::{PathBuf, Path};
@@ -64,7 +65,7 @@ fn generate_assets(
                 static ref CACHE: Mutex<HashSet<&'static [u8]>> = Mutex::new(HashSet::new());
             }
 
-            let path = PathBuf::from(file_path);
+            let path = PathBuf::from(file_path.as_ref());
             let path = {
                 let file_list = FILE_LIST.lock().unwrap();
                 if let Some(prefix) = file_list.get(&path) {
@@ -106,12 +107,12 @@ fn generate_assets(
 
     let map_name = Ident::new(&format!("{}_MAP", ident), Span::call_site());
     quote! {
-        fn get(file_path: &str) -> Option<&'static [u8]> {
+        fn get(file_path: impl AsRef<str>) -> Option<&'static [u8]> {
             static #map_name: packer::phf::Map<&'static str, &'static [u8]> =
                 packer::phf::phf_map! {
                     #(#values,)*
                 };
-            #map_name.get(file_path).map(|x| *x)
+            #map_name.get(file_path.as_ref()).map(|x| *x)
         }
     }
 }

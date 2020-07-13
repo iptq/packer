@@ -11,7 +11,7 @@ license = "MIT"
 name = "packer"
 readme = "README.md"
 repository = "https://github.com/iptq/packer"
-version = "0.5.2"
+version = "0.5.4"
 
 [features]
 default = ["ignore"]
@@ -20,7 +20,7 @@ ignore = ["packer_derive/ignore"]
 
 [dependencies]
 lazy_static = "1.4.0"
-packer_derive = { version = "0.5.1", path = "packer_derive" }
+packer_derive = { version = "0.5.4", path = "packer_derive" }
 phf = { version = "0.8.0", features = ["macros"]}
 
 [dev-dependencies]

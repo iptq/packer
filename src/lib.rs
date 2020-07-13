@@ -101,9 +101,9 @@ pub trait Packer {
 
     /// Returns the contents of the file named `file_name` as a `&'static [u8]` if it exists,
     /// `None` otherwise.
-    fn get(file_name: &str) -> Option<&'static [u8]>;
+    fn get(file_name: impl AsRef<str>) -> Option<&'static [u8]>;
 
     /// Returns the contents of the file named `file_name` as a `&'static str` if it exists and is
     /// valid UTF-8, `None` otherwise.
-    fn get_str(file_name: &str) -> Option<&'static str>;
+    fn get_str(file_name: impl AsRef<str>) -> Option<&'static str>;
 }
