@@ -84,6 +84,9 @@
 //! By default, this option is set to true.
 
 #[doc(hidden)]
+pub extern crate phf;
+
+#[doc(hidden)]
 pub use lazy_static::*;
 #[doc(hidden)]
 pub use packer_derive::*;

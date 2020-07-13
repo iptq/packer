@@ -92,5 +92,7 @@ fn single_file() {
     struct Assets;
 
     assert!(
-        Assets::get("tests/basic/second/LICENSE") == Some(include_bytes!("basic/second/LICENSE")));
+        Assets::get("tests/basic/second/LICENSE")
+            == Some(include_bytes!("basic/second/LICENSE"))
+    );
 }

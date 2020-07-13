@@ -7,12 +7,17 @@ use std::env;
 use std::path::PathBuf;
 
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Lit, LitBool, Meta, MetaNameValue, NestedMeta};
+use syn::{
+    parse_macro_input, Data, DeriveInput, Ident, Lit, LitBool, Meta,
+    MetaNameValue, NestedMeta,
+};
 use walkdir::WalkDir;
 
-fn generate_file_list(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> TokenStream2 {
+fn generate_file_list(
+    file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>,
+) -> TokenStream2 {
     let files = file_list.iter().map(|(key, _)| key);
 
     quote! {
@@ -28,7 +33,10 @@ fn generate_file_list(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) 
 }
 
 #[cfg(all(debug_assertions, not(feature = "always_pack")))]
-fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> TokenStream2 {
+fn generate_assets(
+    ident: &Ident,
+    file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>,
+) -> TokenStream2 {
     let values = file_list
         .iter()
         .map(|(key, (path, prefix))| {
@@ -59,7 +67,6 @@ fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> 
             let path = PathBuf::from(file_path);
             let path = {
                 let file_list = FILE_LIST.lock().unwrap();
-                println!("FILE LIST: {:?}, path: {:?}", file_list, path);
                 if let Some(prefix) = file_list.get(&path) {
                     if let Some(prefix) = prefix {
                         prefix.join(path).to_path_buf()
@@ -82,24 +89,29 @@ fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> 
 }
 
 #[cfg(any(not(debug_assertions), feature = "always_pack"))]
-fn generate_assets(file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>) -> TokenStream2 {
+fn generate_assets(
+    ident: &Ident,
+    file_list: &BTreeMap<String, (PathBuf, Option<PathBuf>)>,
+) -> TokenStream2 {
     let values = file_list
         .iter()
         .map(|(key, (path, _))| {
             // let base = folder_path.as_ref();
-            let canonical_path =
-                std::fs::canonicalize(&path).expect("Could not get canonical path");
+            let canonical_path = std::fs::canonicalize(&path)
+                .expect("Could not get canonical path");
             let canonical_path_str = canonical_path.to_str();
-            quote! { #key => Some(include_bytes!(#canonical_path_str)) }
+            quote! { #key => include_bytes!(#canonical_path_str) }
         })
         .collect::<Vec<_>>();
 
+    let map_name = Ident::new(&format!("{}_MAP", ident), Span::call_site());
     quote! {
         fn get(file_path: &str) -> Option<&'static [u8]> {
-            match file_path {
-                #(#values,)*
-                _ => None,
-            }
+            static #map_name: packer::phf::Map<&'static str, &'static [u8]> =
+                packer::phf::phf_map! {
+                    #(#values,)*
+                };
+            #map_name.get(file_path).map(|x| *x)
         }
     }
 }
@@ -111,7 +123,8 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     };
 
     let ident = &ast.ident;
-    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+    let (impl_generics, ty_generics, where_clause) =
+        ast.generics.split_for_impl();
 
     let mut file_list = BTreeMap::new();
 
@@ -135,7 +148,9 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                 };
 
                 let (path, value) = match meta {
-                    Meta::NameValue(MetaNameValue { path, lit, .. }) => (path, lit),
+                    Meta::NameValue(MetaNameValue { path, lit, .. }) => {
+                        (path, lit)
+                    }
                     _ => continue,
                 };
 
@@ -170,7 +185,8 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
                         _ => panic!("Attribute value must be a string."),
                     };
 
-                    let pattern = glob::Pattern::new(&pattern).expect("Could not compile glob.");
+                    let pattern = glob::Pattern::new(&pattern)
+                        .expect("Could not compile glob.");
                     ignore_patterns.push(pattern);
                 } else {
                     panic!("unsupported parameter '{:?}'", path);
@@ -253,7 +269,7 @@ fn impl_packer(ast: &syn::DeriveInput) -> TokenStream2 {
     }
 
     let generate_file_list_fn = generate_file_list(&file_list);
-    let generate_assets_fn = generate_assets(&file_list);
+    let generate_assets_fn = generate_assets(ident, &file_list);
 
     quote! {
         impl #impl_generics ::packer::Packer for #ident #ty_generics #where_clause {
