@@ -24,4 +24,4 @@ packer_derive = { version = "0.5.4", path = "packer_derive" }
 phf = { version = "0.8.0", features = ["macros"] }
 
 [dev-dependencies]
-sha2 = "0.9.1"
+sha2 = "0.9.3"
